@@ -691,10 +691,21 @@ export const PromptInput = ({
       }
 
       if (capped.length > 0) {
-        controller?.attachments.add(capped);
+        setIsUploading(!!onFileAdd);
+        Promise.all(capped.map(async (file) => ({
+          filename: file.name,
+          mediaType: file.type,
+          type: "file" as const,
+          url: onFileAdd ? await onFileAdd(file) : URL.createObjectURL(file),
+        }))).then((uploaded) => {
+          if (onFileAdd) controller?.attachments.addUploaded(uploaded);
+          else controller?.attachments.add(capped);
+        }).catch(() => {
+          // Keep existing attachments if an upload fails.
+        }).finally(() => setIsUploading(false));
       }
     },
-    [matchesAccept, maxFileSize, maxFiles, onError, files.length, controller]
+    [matchesAccept, maxFileSize, maxFiles, onError, files.length, controller, onFileAdd]
   );
 
   const clearAttachments = useCallback(
