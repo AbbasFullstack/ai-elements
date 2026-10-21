@@ -626,19 +626,39 @@ export const PromptInput = ({
       }
       if (!capped.length) return;
       setIsUploading(!!onFileAdd);
-      Promise.all(capped.map(async (file) => ({
-        filename: file.name,
-        mediaType: file.type,
-        type: "file" as const,
-        url: onFileAdd ? await onFileAdd(file) : URL.createObjectURL(file),
-      }))).then((uploaded) => {
-        if (usingProvider) controller?.attachments.addUploaded(uploaded);
-        else setItems((prev) => [...prev, ...uploaded.map((file) => ({ ...file, id: nanoid() }))]);
-      }).catch(() => {
-        // Keep existing attachments if an upload fails.
-      }).finally(() => setIsUploading(false));
+      Promise.all(
+        capped.map(async (file) => ({
+          filename: file.name,
+          mediaType: file.type,
+          type: "file" as const,
+          url: onFileAdd ? await onFileAdd(file) : URL.createObjectURL(file),
+        }))
+      )
+        .then((uploaded) => {
+          if (usingProvider) {
+            controller?.attachments.addUploaded(uploaded);
+          } else {
+            setItems((prev) => [
+              ...prev,
+              ...uploaded.map((file) => ({ ...file, id: nanoid() })),
+            ]);
+          }
+        })
+        .catch(() => {
+          // Keep existing attachments if an upload fails.
+        })
+        .finally(() => setIsUploading(false));
     },
-    [matchesAccept, maxFiles, maxFileSize, onError, files.length, onFileAdd, usingProvider, controller]
+    [
+      matchesAccept,
+      maxFiles,
+      maxFileSize,
+      onError,
+      files.length,
+      onFileAdd,
+      usingProvider,
+      controller,
+    ]
   );
 
   const removeLocal = useCallback(
@@ -696,19 +716,32 @@ export const PromptInput = ({
           return;
         }
         setIsUploading(true);
-        Promise.all(capped.map(async (file) => ({
-          filename: file.name,
-          mediaType: file.type,
-          type: "file" as const,
-          url: await onFileAdd(file),
-        }))).then((uploaded) => {
-          controller?.attachments.addUploaded(uploaded);
-        }).catch(() => {
-          // Keep existing attachments if an upload fails.
-        }).finally(() => setIsUploading(false));
+        Promise.all(
+          capped.map(async (file) => ({
+            filename: file.name,
+            mediaType: file.type,
+            type: "file" as const,
+            url: await onFileAdd(file),
+          }))
+        )
+          .then((uploaded) => {
+            controller?.attachments.addUploaded(uploaded);
+          })
+          .catch(() => {
+            // Keep existing attachments if an upload fails.
+          })
+          .finally(() => setIsUploading(false));
       }
     },
-    [matchesAccept, maxFileSize, maxFiles, onError, files.length, controller, onFileAdd]
+    [
+      matchesAccept,
+      maxFileSize,
+      maxFiles,
+      onError,
+      files.length,
+      controller,
+      onFileAdd,
+    ]
   );
 
   const clearAttachments = useCallback(
@@ -734,7 +767,7 @@ export const PromptInput = ({
   const add = usingProvider ? addWithProviderValidation : addLocal;
   const remove = useCallback((id: string) => {
     const found = files.find((file) => file.id === id);
-    if (found?.url && onFileRemove) {
+    if (found?.url && !found.url.startsWith("blob:") && onFileRemove) {
       void onFileRemove(found.url).catch(() => {
         // UI removal should not be blocked by remote cleanup failures.
       });
