@@ -691,15 +691,18 @@ export const PromptInput = ({
       }
 
       if (capped.length > 0) {
-        setIsUploading(!!onFileAdd);
+        if (!onFileAdd) {
+          controller?.attachments.add(capped);
+          return;
+        }
+        setIsUploading(true);
         Promise.all(capped.map(async (file) => ({
           filename: file.name,
           mediaType: file.type,
           type: "file" as const,
-          url: onFileAdd ? await onFileAdd(file) : URL.createObjectURL(file),
+          url: await onFileAdd(file),
         }))).then((uploaded) => {
-          if (onFileAdd) controller?.attachments.addUploaded(uploaded);
-          else controller?.attachments.add(capped);
+          controller?.attachments.addUploaded(uploaded);
         }).catch(() => {
           // Keep existing attachments if an upload fails.
         }).finally(() => setIsUploading(false));
